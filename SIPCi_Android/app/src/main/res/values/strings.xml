@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SIPCi_Android</string>
+    <string name="MainButton">Main button for alarm</string>
+    <string name="todo">TODO</string>
+</resources>
