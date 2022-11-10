@@ -5,7 +5,7 @@
     android:id="@+id/back"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@color/BasicBG"
     android:clickable="true"
     android:onClick="checkData"
     android:orientation="vertical"
@@ -16,7 +16,7 @@
         android:id="@+id/listDeviceBluetooth"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#FFFFFF"
+        android:background="#000000"
         android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
         tools:ignore="MissingConstraints" />

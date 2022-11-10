@@ -3,30 +3,29 @@ package com.example.sipci_android
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.os.Build
-import android.os.Bundle
-import android.os.Looper
+import android.media.MediaPlayer
+import android.os.*
 import android.provider.Settings
+import android.view.KeyEvent
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import com.android.volley.Request
+import com.android.volley.toolbox.StringRequest
+import com.android.volley.toolbox.Volley
 import com.google.android.gms.location.*
+import com.google.android.gms.tasks.OnCompleteListener
 import com.ingenieriajhr.blujhr.BluJhr
 import kotlinx.android.synthetic.main.activity_main.*
-import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.net.URL
-import java.time.LocalDate
-import java.time.LocalDate.*
-import java.time.format.DateTimeFormatter
 
 
 class MainActivity : AppCompatActivity() {
@@ -37,10 +36,13 @@ class MainActivity : AppCompatActivity() {
 
     var x = ""
     var y = ""
+    var linea = ""
+    var status = false
 
     lateinit var blue:BluJhr
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -50,6 +52,10 @@ class MainActivity : AppCompatActivity() {
 
         blue = BluJhr(this)
         blue.onBluetooth()
+
+        Intent(this, KeepOpen::class.java).also { intent ->
+            startService(intent)
+        }
 
         listDeviceBluetooth.setOnItemClickListener { adapterView, view, i, l ->
             if (devicesBluetooth.isNotEmpty()) {
@@ -100,8 +106,8 @@ class MainActivity : AppCompatActivity() {
                     if (location == null) {
                         requestNewLocationData()
                     } else {
-                        x =  location.latitude.toString()
-                        y = location.longitude.toString()
+                        y = location.latitude.toString()
+                        x = location.longitude.toString()
                     }
                 }
             } else {
@@ -158,7 +164,18 @@ class MainActivity : AppCompatActivity() {
             override fun rxDate(rx: String) {
 //                consola.text = consola.text.toString()+rx
                 if (rx == "alarm"){
-                    Toast.makeText(applicationContext, "Conexion!!!!", Toast.LENGTH_SHORT).show()
+                    val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
+                    if(mp.isPlaying && status){
+                        mp.reset()
+                        mp.stop()
+                        mp.release()
+                        status = false
+                    }
+                    else if (!status) {
+                        mp.start()
+                        mp.setLooping(true)
+                        status = true
+                    }
                 }
             }
         })
@@ -216,15 +233,46 @@ class MainActivity : AppCompatActivity() {
         blueButton.visibility = View.GONE
     }
 
-    fun setAlarm(view: View) {
+    fun setAlarmI() {
         try{
             blue.bluTx("1")
-            Toast.makeText(applicationContext, "Sent??", Toast.LENGTH_SHORT).show()
         }
         catch(e: Exception) {
             Toast.makeText(applicationContext,"No BT connected",Toast.LENGTH_LONG).show()
         }
-        // Upload data
+        val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
+        if(mp.isPlaying && status){
+            mp.reset()
+            mp.stop()
+            mp.release()
+            status = false
+        }
+        else if (!status) {
+            mp.start()
+            mp.setLooping(true)
+            status = true
+        }
+    }
+
+    fun setAlarm(view: View) {
+        try{
+            blue.bluTx("1")
+        }
+        catch(e: Exception) {
+            Toast.makeText(applicationContext,"No BT connected",Toast.LENGTH_LONG).show()
+        }
+        val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
+        if(mp.isPlaying && status){
+            mp.reset()
+            mp.stop()
+            mp.release()
+            status = false
+        }
+        else if (!status) {
+            mp.start()
+            mp.setLooping(true)
+            status = true
+        }
     }
 
     override fun onBackPressed() {
@@ -245,35 +293,90 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     fun checkData(view: View){
         getLocation()
-        var time = getTime()
-        val url = URL("https://")
-        val connection = url.openConnection()
-        BufferedReader(InputStreamReader(connection.getInputStream())).use { inp ->
-            var line: String?
-            while (inp.readLine().also { line = it } != null) {
-                var data = line!!.toFloat()
-                val root = back.rootView
-                if (data > 70){
-                    root.setBackgroundColor(0xFFEA09)
-                }
-                else if (data > 30 && data < 80){
-                    root.setBackgroundColor(0xFFC300)
-                }
-                else{
-                    root.setBackgroundColor(0x00D530)
-                }
+        val queue = Volley.newRequestQueue(this)
+        val url = "https://sipciait.pythonanywhere.com/botonazo/?a="+x+"&b="+y
+        println(url)
+        val srtRQ = StringRequest(Request.Method.GET,url, { response ->
+            this.linea = response.toString() }, { error -> println(error)}
+            )
+        var nLinea = this.linea
+        nLinea = nLinea.replace("[","")
+        nLinea = nLinea.replace("]","")
+        println(nLinea)
+        var data = nLinea
+//        var data = nLinea.toFloatOrNull()
+        if (data > "70"){
+            back.setBackgroundResource(R.color.DangerBG)
+        }
+        else if (data > "30" && data < "80"){
+            back.setBackgroundResource(R.color.MediumBG)
+        }
+        else{
+            back.setBackgroundResource(R.color.BasicBG)
+        }
+        queue.add(srtRQ)
+    }
+
+    private val PRESS_INTERVAL = 700
+    private var mUpKeyEventTime: Long = 0
+    @Override
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (KeyEvent.KEYCODE_VOLUME_DOWN == event.keyCode) {
+            if (event.eventTime - mUpKeyEventTime < PRESS_INTERVAL) {
+                setAlarmI()
             }
+            return true
+        } else if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    @Override
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (KeyEvent.KEYCODE_VOLUME_UP == keyCode) {
+            mUpKeyEventTime = event.eventTime
+        }
+        return super.onKeyUp(keyCode, event)
+    }
+}
+
+class KeepOpen : Service(){
+    private var serviceLooper: Looper? = null
+    private var serviceHandler: ServiceHandler? = null
+
+    // Handler that receives messages from the thread
+    private inner class ServiceHandler(looper: Looper) : Handler(looper) {
+
+        override fun handleMessage(msg: Message) {
+            // Normally we would do some work here, like download a file.
+            // For our sample, we just sleep for 5 seconds.
+            try {
+                Thread.sleep(5000)
+            } catch (e: InterruptedException) {
+                // Restore interrupt status.
+                Thread.currentThread().interrupt()
+            }
+
+            // Stop the service using the startId, so that we don't stop
+            // the service in the middle of handling another job
+            stopSelf(msg.arg1)
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun getTime(): String {
-        val date: LocalDate = LocalDate.now()
-        val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HHmm")
-        val text: String = date.format(formatter)
-        val parsedDate: LocalDate = LocalDate.parse(text, formatter)
-        return parsedDate.toString()
+    override fun onCreate() {
+       //Do nothing
     }
 
-}
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        return START_STICKY
+    }
 
+    override fun onBind(intent: Intent): IBinder? {
+        return null
+    }
+
+    override fun onDestroy() {
+        Toast.makeText(this, "service done", Toast.LENGTH_SHORT).show()
+    }
+}

@@ -20,7 +20,7 @@ xtrain, xtest, ytrain, ytest = train_test_split(x,y)
 kernel = 2.0 * RBF(1.0)
 
 model = Pipeline([('scaler',StandardScaler()),
-                  ('kriging',GaussianProcessRegressor(kernel=kernel,alpha=0.01))])
+                  ('kriging',GaussianProcessRegressor(alpha=0.001))])
 
 model.fit(xtrain, ytrain)
 
