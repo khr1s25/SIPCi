@@ -164,18 +164,7 @@ class MainActivity : AppCompatActivity() {
             override fun rxDate(rx: String) {
 //                consola.text = consola.text.toString()+rx
                 if (rx == "alarm"){
-                    val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
-                    if(mp.isPlaying && status){
-                        mp.reset()
-                        mp.stop()
-                        mp.release()
-                        status = false
-                    }
-                    else if (!status) {
-                        mp.start()
-                        mp.setLooping(true)
-                        status = true
-                    }
+                    setAlarmB()
                 }
             }
         })
@@ -236,6 +225,18 @@ class MainActivity : AppCompatActivity() {
     fun setAlarmI() {
         try{
             blue.bluTx("1")
+            val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
+            if(mp.isPlaying && status){
+                mp.reset()
+                mp.stop()
+                mp.release()
+                status = false
+            }
+            else if (!status) {
+                mp.start()
+                mp.setLooping(true)
+                status = true
+            }
         }
         catch(e: Exception) {
             Toast.makeText(applicationContext,"No BT connected",Toast.LENGTH_LONG).show()
@@ -254,9 +255,36 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun setAlarmB() {
+        val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
+        if(mp.isPlaying && status){
+            mp.reset()
+            mp.stop()
+            mp.release()
+            status = false
+        }
+        else if (!status) {
+            mp.start()
+            mp.setLooping(true)
+            status = true
+        }
+    }
+
     fun setAlarm(view: View) {
         try{
             blue.bluTx("1")
+            val mp = MediaPlayer.create(applicationContext, R.raw.alarma)
+            if(mp.isPlaying && status){
+                mp.reset()
+                mp.stop()
+                mp.release()
+                status = false
+            }
+            else if (!status) {
+                mp.start()
+                mp.setLooping(true)
+                status = true
+            }
         }
         catch(e: Exception) {
             Toast.makeText(applicationContext,"No BT connected",Toast.LENGTH_LONG).show()
